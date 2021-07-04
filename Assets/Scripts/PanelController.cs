@@ -6,7 +6,6 @@ using UniRx;
 using UniRx.Triggers;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
-using DG.Tweening;
 
 public class PanelController : MonoBehaviour
 {
@@ -56,6 +55,15 @@ public class PanelController : MonoBehaviour
     [Header("Animation")]
     [SerializeField]
     private float addMoveDuration = 0.2f;
+
+    [SerializeField]
+    private float downMoveDuration = 0.4f;
+
+    [SerializeField]
+    private float shakeStrength = 0.7f;
+
+    [SerializeField]
+    private float shakeDuration = 0.5f;
 
     [SerializeField]
     private float nextRoopDuration = 0.5f;
@@ -156,19 +164,25 @@ public class PanelController : MonoBehaviour
                     if (grid[x, y] == null) continue;
                     for (int y2 = 0; y2 < y; y2++) {
                         if (grid[x, y2] == null) {
+                            //TweenAnimation.RegistMoveAnim(
+                            //    grid[x, y].transform, 
+                            //    new Vector3(x, y2, 0), 
+                            //    downMoveDuration, 
+                            //    () => {
+                            //        SwapGrid(x, y, x, y2);
+                            //        movePanels.Add(grid[x, y2]);
+                            //    });
                             SetGrid(grid[x, y], x, y2);
-                            movePanels.Add(grid[x, y2]);
                             grid[x, y] = null;
+                            grid[x, y2].transform.position = new Vector3(x, y2);
+                            movePanels.Add(grid[x, y2]);
                             break;
                         }
-                        //else if (grid[x, y].getPanelIndex == grid[x, y2].getPanelIndex) {
-                        //    movePanels.Add(grid[x, y]);
-                        //    break;
-                        //}
                     }
                 }
             }
-            yield return new WaitForSeconds(nextRoopDuration);
+            var animCoroutrine = TweenAnimation.MoveAnimRunShake(shakeStrength, shakeDuration);
+            yield return animCoroutrine;
         }
 
         if (grid[2, 6]) {
@@ -176,13 +190,14 @@ public class PanelController : MonoBehaviour
             yield break;
         }
 
+        yield return new WaitForSeconds(nextRoopDuration);
+
         CreateNewPanel();
 
         onProcessing = false;
     }
 
     private IEnumerator CheckNextToPanel(List<Panel> movePanels) {
-        int removedPanel = 0;
         foreach (var panel in movePanels) {
             int roundX = Mathf.RoundToInt(panel.transform.position.x);
             int roundY = Mathf.RoundToInt(panel.transform.position.y);
@@ -191,23 +206,23 @@ public class PanelController : MonoBehaviour
             Vector3 purpose = new Vector3(roundX, roundY, 0);
             if (ValidPanel(roundX - 1, roundY) && grid[roundX - 1, roundY].getPanelIndex == panel.getPanelIndex) {
                 nextNums++;
-                RemoveGrid(roundX - 1, roundY, purpose);
+                TweenAnimation.RegistMoveAnim(grid[roundX - 1, roundY].transform, purpose, addMoveDuration, () => RemoveGrid(roundX - 1, roundY));
             }
             if (ValidPanel(roundX + 1, roundY) && grid[roundX + 1, roundY].getPanelIndex == panel.getPanelIndex) {
                 nextNums++;
-                RemoveGrid(roundX + 1, roundY, purpose);
+                TweenAnimation.RegistMoveAnim(grid[roundX + 1, roundY].transform, purpose, addMoveDuration, () => RemoveGrid(roundX + 1, roundY));
             }
             if (ValidPanel(roundX, roundY - 1) && grid[roundX, roundY - 1].getPanelIndex == panel.getPanelIndex) {
                 nextNums++;
-                RemoveGrid(roundX, roundY - 1, purpose);
+                TweenAnimation.RegistMoveAnim(grid[roundX, roundY - 1].transform, purpose, addMoveDuration, () => RemoveGrid(roundX, roundY - 1));
             }
 
             panel.AddIndex(nextNums);
             if (nextNums > 0) scoreController.AddScore(panel.getPanelNum);
-            removedPanel += nextNums;
         }
 
-        yield return new WaitForSeconds(addMoveDuration * removedPanel);
+        var animCoroutine = StartCoroutine(TweenAnimation.MoveAnimRun());
+        yield return animCoroutine;
     }
 
     private void SetGrid(Panel panel) {
@@ -221,15 +236,14 @@ public class PanelController : MonoBehaviour
         grid[x, y].transform.position = new Vector3(x, y, 0);
     }
 
-    private void RemoveGrid(int x, int y, Vector3 purpose) {
+    private void SwapGrid(int x, int y, int x2, int y2) {
+        (grid[x, y], grid[x2, y2]) = (grid[x2, y2], grid[x, y]);
+    }
+
+    private void RemoveGrid(int x, int y) {
         if (OutOfRange(x, y)) return;
-        grid[x, y].DecSortingLayer();
-        grid[x, y].transform
-            .DOMove(purpose, addMoveDuration)
-            .OnComplete(() => {
-                Destroy(grid[x, y].gameObject);
-                grid[x, y] = null;
-            });
+        Destroy(grid[x, y].gameObject);
+        grid[x, y] = null;
     }
 
     private int GenerateIndex() {
