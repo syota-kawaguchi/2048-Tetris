@@ -21,7 +21,8 @@ public class Panel : MonoBehaviour
             panelNum.text = getPanelNum.ToString();
         }).AddTo(gameObject);
 
-        panel.color = PanelColors.GetColor(index.Value);
+        Color color = PanelColors.GetColor(index.Value);
+        panel.color = new Color(color.r, color.g, color.b);
     }
 
     public int getPanelIndex {
