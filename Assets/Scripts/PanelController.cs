@@ -72,17 +72,14 @@ public class PanelController : MonoBehaviour
         nextPanelCollection.Add(GenerateIndex());
 
         this.UpdateAsObservable()
-            .Where(_ => inputManager.onMoveLeft())
             .Where(_ => !OnDenyInput())
-            .Subscribe(_ => MoveHorizontal(-1));
+            .Where(_ => inputManager.InputHorizontal() != 0)
+            .Subscribe(_ => {
+                MoveHorizontal(inputManager.InputHorizontal());
+            });
 
         this.UpdateAsObservable()
-            .Where(_ => inputManager.onMoveRight())
-            .Where(_ => !OnDenyInput())
-            .Subscribe(_ => MoveHorizontal(1));
-
-        this.UpdateAsObservable()
-            .Where(_ => inputManager.onMoveDown())
+            .Where(_ => inputManager.OnMoveDown())
             .Where(_ => !OnDenyInput())
             .Subscribe(_ => MoveDownBottom(currentPanel));
 
@@ -234,10 +231,6 @@ public class PanelController : MonoBehaviour
     private void SetGrid(Panel panel, int x, int y) {
         grid[x, y] = panel;
         grid[x, y].transform.position = new Vector3(x, y, 0);
-    }
-
-    private void SwapGrid(int x, int y, int x2, int y2) {
-        (grid[x, y], grid[x2, y2]) = (grid[x2, y2], grid[x, y]);
     }
 
     private void RemoveGrid(int x, int y) {

@@ -147,6 +147,11 @@ public class ScreenInput : SingletonMonoBehaviour<ScreenInput>
         }
     }
 
+    //スワイプ量の取得
+    public float getSwipeValueX {
+        get { return SwipeRange.x; }
+    }
+
     // スワイプ量の取得
     public Vector2 getSwipeValueVec {
         get {

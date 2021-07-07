@@ -4,19 +4,28 @@ using UnityEngine;
 
 public class InputManager : MonoBehaviour
 {
-    public bool onMoveLeft() {
+    public bool OnMoveLeft() {
         if (isSmartPhone) return ScreenInput.Instance.getFlickDirection == Direction.LEFT;
         else return Input.GetKeyDown(KeyCode.LeftArrow);
     }
 
-    public bool onMoveRight() {
+    public bool OnMoveRight() {
         if (isSmartPhone) return ScreenInput.Instance.getFlickDirection == Direction.RIGHT;
         else return Input.GetKeyDown(KeyCode.RightArrow);
     }
 
-    public bool onMoveDown() {
+    public bool OnMoveDown() {
         if (isSmartPhone) return ScreenInput.Instance.getFlickDirection == Direction.DOWN;
         else return Input.GetKeyDown(KeyCode.DownArrow);
+    }
+
+    public float InputHorizontal() {
+        if (isSmartPhone) return ScreenInput.Instance.getSwipeValue;
+        else {
+            if (Input.GetKeyDown(KeyCode.RightArrow)) return 1;
+            else if (Input.GetKeyDown(KeyCode.LeftArrow)) return -1;
+            else return 0;
+        }
     }
 
     private bool isSmartPhone {
