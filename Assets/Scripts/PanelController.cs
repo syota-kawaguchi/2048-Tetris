@@ -69,6 +69,9 @@ public class PanelController : MonoBehaviour
     [SerializeField]
     private float nextRoopDuration = 0.5f;
 
+    [SerializeField]
+    private float mergeDuration = 0.5f; //パネルが合体してから次の処理までの間時間
+
     void Start() {
         nextPanelCollection.Add(GenerateIndex());
 
@@ -172,11 +175,14 @@ public class PanelController : MonoBehaviour
                         continue;
                     }
 
+                    //空白のマスを見つけたとき
                     if (!onModeDown && grid[x, y] == null) {
-                        onModeDown = true;
+                        onModeDown = true;         //次マスを見つけたとき下にずらすフラグ
                         (blankX, blankY) = (x, y);
                         continue;
                     }
+
+                    //下にずらすパネルを実効するアニメーションとして登録
                     if (onModeDown && grid[x, y] != null) {
                         TweenAnimation.RegistMoveAnim(
                             grid[x, y].transform,
@@ -191,7 +197,7 @@ public class PanelController : MonoBehaviour
                 }
             }
 
-            var animCoroutrine = TweenAnimation.MoveAnimRunShake(shakeStrength, shakeDuration);
+            var animCoroutrine = TweenAnimation.MoveAnimRun();//TweenAnimation.MoveAnimRunShake(shakeStrength, shakeDuration);
             yield return animCoroutrine;
 
             foreach (var index in movePanelIndexes) {
@@ -199,7 +205,6 @@ public class PanelController : MonoBehaviour
                 var panel = grid[index.Item1, index.Item2];
                 movePanels.Add(panel);
                 grid[index.Item1, index.Item2] = null;
-                Debug.Log(panel);
             }
         }
 
@@ -225,15 +230,18 @@ public class PanelController : MonoBehaviour
             Vector3 purpose = new Vector3(roundX, roundY, 0);
             if (ValidPanel(roundX - 1, roundY) && grid[roundX - 1, roundY].getPanelIndex == panel.getPanelIndex) {
                 nextNums++;
-                TweenAnimation.RegistMoveAnim(grid[roundX - 1, roundY].transform, purpose, addMoveDuration, () => RemoveGrid(roundX - 1, roundY));
+                grid[roundX - 1, roundY].gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
+                TweenAnimation.RegistMoveAnim(grid[roundX - 1, roundY].transform, purpose, addMoveDuration, () => RemoveGrid(roundX - 1, roundY), panel.transform);
             }
             if (ValidPanel(roundX + 1, roundY) && grid[roundX + 1, roundY].getPanelIndex == panel.getPanelIndex) {
                 nextNums++;
-                TweenAnimation.RegistMoveAnim(grid[roundX + 1, roundY].transform, purpose, addMoveDuration, () => RemoveGrid(roundX + 1, roundY));
+                grid[roundX + 1, roundY].gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
+                TweenAnimation.RegistMoveAnim(grid[roundX + 1, roundY].transform, purpose, addMoveDuration, () => RemoveGrid(roundX + 1, roundY), panel.transform);
             }
             if (ValidPanel(roundX, roundY - 1) && grid[roundX, roundY - 1].getPanelIndex == panel.getPanelIndex) {
                 nextNums++;
-                TweenAnimation.RegistMoveAnim(grid[roundX, roundY - 1].transform, purpose, addMoveDuration, () => RemoveGrid(roundX, roundY - 1));
+                grid[roundX, roundY - 1].gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
+                TweenAnimation.RegistMoveAnim(grid[roundX, roundY - 1].transform, purpose, addMoveDuration, () => RemoveGrid(roundX, roundY - 1), panel.transform);
             }
 
             panel.AddIndex(nextNums);
@@ -242,7 +250,7 @@ public class PanelController : MonoBehaviour
             }
         }
 
-        var animCoroutine = StartCoroutine(TweenAnimation.MoveAnimRunShake(shakeStrength, shakeDuration));
+        var animCoroutine = StartCoroutine(TweenAnimation.MergePanelAnim(shakeStrength, shakeDuration, mergeDuration));
         yield return animCoroutine;
     }
 
