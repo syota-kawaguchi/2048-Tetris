@@ -292,6 +292,24 @@ public class PanelController : MonoBehaviour
         return x < 0 || WIDTH <= x || y < 0 || HEIGHT <= y;
     }
 
+    public void Restart() {
+        for (int i = 0; i < WIDTH; i++) {
+            for (int j = 0; j < HEIGHT; j++) {
+                if(grid[i, j])Destroy(grid[i, j].gameObject);
+                grid[i, j] = null;
+            }
+        }
+        movePanels.Clear();
+        movePanelIndexes.Clear();
+        currentPanel = null;
+        Destroy(currentPanelObj);
+        nextPanelCollection.Clear();
+
+        nextPanelCollection.Add(GenerateIndex());
+
+        CreateNewPanel();
+    }
+
     private IEnumerator GameOver() {
         yield return new WaitForSeconds(1.0f);
 

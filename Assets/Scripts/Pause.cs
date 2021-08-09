@@ -2,12 +2,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using UniRx;
 using DG.Tweening;
 
 public class Pause : MonoBehaviour
 {
     public static bool onPause = false;
+
+    [SerializeField]
+    private PanelController panelController;
 
     [SerializeField]
     private Button pauseButton;
@@ -17,6 +21,12 @@ public class Pause : MonoBehaviour
 
     [SerializeField]
     private Button resumeButton;
+
+    [SerializeField]
+    private Button restartButton;
+
+    [SerializeField]
+    private Button quitButton;
 
     [Header("Pause Panle Animation")]
     [SerializeField]
@@ -42,6 +52,19 @@ public class Pause : MonoBehaviour
             .Subscribe(_ => {
                 onPause = false;
                 pausePanel.SetActive(false);
+            });
+
+        restartButton.OnClickAsObservable()
+            .Subscribe(_ =>{
+                onPause = false;
+                panelController.Restart();
+                pausePanel.SetActive(false);
+            });
+
+        quitButton.OnClickAsObservable()
+            .Subscribe(_ =>{
+                onPause = false;
+                SceneManager.LoadScene("StartScene");
             });
 
         pausePanel.SetActive(false);
