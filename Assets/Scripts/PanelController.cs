@@ -73,6 +73,11 @@ public class PanelController : MonoBehaviour
     private float mergeDuration = 0.5f; //パネルが合体してから次の処理までの間時間
 
     void Start() {
+
+        Debug.Log($"Screen : {Screen.orientation}");
+        Debug.Log($"Screen size width : {Screen.width}");
+        Debug.Log($"Screen size width : {Screen.height}");
+
         nextPanelCollection.Add(GenerateIndex());
 
         this.UpdateAsObservable()
