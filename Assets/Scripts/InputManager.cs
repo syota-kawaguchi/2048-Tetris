@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UniRx;
 
 public class InputManager : MonoBehaviour
 {
@@ -19,9 +20,13 @@ public class InputManager : MonoBehaviour
         else return Input.GetKeyDown(KeyCode.DownArrow);
     }
 
-    public float InputHorizontal() {
-        if (isSmartPhone) return ScreenInput.Instance.getSwipeValue;
-        else {
+    public int InputHorizontal() {
+        if (isSmartPhone) {
+            var flickDirection = ScreenInput.Instance.getFlickDirection;
+            if (flickDirection == Direction.RIGHT) return 1;
+            else if (flickDirection == Direction.LEFT) return -1;
+            else return 0;
+        } else {
             if (Input.GetKeyDown(KeyCode.RightArrow)) return 1;
             else if (Input.GetKeyDown(KeyCode.LeftArrow)) return -1;
             else return 0;

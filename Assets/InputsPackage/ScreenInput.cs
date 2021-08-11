@@ -37,6 +37,8 @@ public class ScreenInput : SingletonMonoBehaviour<ScreenInput>
     // Update is called once per frame
     void Update() {
         GetInputVector();
+        //Debug.Log($"current flick Direction : {flickDirection}");
+        //Debug.Log($"current swipe Direction : {swipeDirection}");
     }
 
     // 入力の取得

@@ -33,8 +33,12 @@ public class PanelController : MonoBehaviour
 
     private bool gameOverFlag = false;
 
-    //TimerSpan
-    private float timeSpan = 1.0f;
+    //move down TimerSpan
+    [SerializeField]
+    private float moveDownTimeSpan = 1.0f;
+
+     [SerializeField]
+    private float inputTimeSpan = 0.3f;
 
     //パネルが下に到達したときTrue
     private bool onProcessing = false;
@@ -81,18 +85,17 @@ public class PanelController : MonoBehaviour
         nextPanelCollection.Add(GenerateIndex());
 
         this.UpdateAsObservable()
-            .Where(_ => !OnDenyInput())
             .Where(_ => inputManager.InputHorizontal() != 0)
-            .Subscribe(_ => {
-                MoveHorizontal(inputManager.InputHorizontal());
-            });
+            .Where(_ => !OnDenyInput())
+            .ThrottleFirst(TimeSpan.FromSeconds(inputTimeSpan))
+            .Subscribe(_ => MoveHorizontal(inputManager.InputHorizontal()));
 
         this.UpdateAsObservable()
             .Where(_ => inputManager.OnMoveDown())
             .Where(_ => !OnDenyInput())
             .Subscribe(_ => MoveDownBottom(currentPanel));
 
-        Observable.Interval(TimeSpan.FromSeconds(timeSpan))
+        Observable.Interval(TimeSpan.FromSeconds(moveDownTimeSpan))
             .Where(_ => !OnDenyInput())
             .Subscribe(x => {
                 MoveDown();
@@ -106,6 +109,10 @@ public class PanelController : MonoBehaviour
             .Subscribe((CollectionReplaceEvent<int> i) => nextPanelView.SetNextPanel(i.NewValue));
 
         CreateNewPanel();
+    }
+
+    public void Update() {
+        Debug.Log("horizontal : " + inputManager.InputHorizontal());
     }
 
     private bool OnDenyInput() {
@@ -123,9 +130,10 @@ public class PanelController : MonoBehaviour
     }
 
     private void MoveHorizontal(float hol) {
-        currentPanelObj.transform.position += new Vector3(hol, 0, 0);
+        int value = hol > 0 ? 1 : 0 > hol? -1 : 0; //0より大きい → １、0より小さい → -1、0 → 0
+        currentPanelObj.transform.position += new Vector3(value, 0, 0);
         if (!ValidMovement()) {
-            currentPanelObj.transform.position += new Vector3(-hol, 0, 0);
+            currentPanelObj.transform.position += new Vector3(-value, 0, 0);
         }
     }
 
