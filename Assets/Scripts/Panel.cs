@@ -12,6 +12,8 @@ public class Panel : MonoBehaviour
     [SerializeField]
     private SpriteRenderer panel;
 
+    public bool mergeFlag = false;
+
     private ReactiveProperty<int> index = new ReactiveProperty<int>(1);
 
     public void Init(int initIndex) {

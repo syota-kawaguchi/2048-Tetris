@@ -10,7 +10,7 @@ public class TweenAnimation : MonoBehaviour
     private static float destroyDuration = 0.2f;
 
     private static List<TweenMoveAnim> MoveAnimList = new List<TweenMoveAnim>();
-    public static void RegistMoveAnim(Transform target, Vector3 purpose, float duration, Action onComplete, Transform centerPanel = null) {
+    public static void RegistMoveAnim(Transform target, Vector3 purpose, float duration, Action onComplete = null, Transform centerPanel = null) {
         MoveAnimList.Add(new TweenMoveAnim(target, purpose, duration, onComplete, centerPanel));
     }
 
@@ -23,7 +23,7 @@ public class TweenAnimation : MonoBehaviour
             anim.target
                 .DOMove(anim.purpose, anim.duration)
                 .OnComplete(() => {
-                    anim.onComplete();
+                    anim.onComplete?.Invoke();
                     if (i >= MoveAnimList.Count - 1) finFlag = true;
                 });
         }
@@ -40,7 +40,7 @@ public class TweenAnimation : MonoBehaviour
             anim.target
                 .DOMove(anim.purpose, anim.duration)
                 .OnComplete(() => {
-                    anim.onComplete();
+                    anim.onComplete?.Invoke();
                     if (i >= MoveAnimList.Count - 1) finFlag = true;
                 });
             DOVirtual.DelayedCall(
@@ -61,12 +61,13 @@ public class TweenAnimation : MonoBehaviour
             anim.target
                 .DOMove(anim.purpose, anim.duration)
                 .OnComplete(() => {
-                    anim.onComplete();
+                    anim.onComplete?.Invoke();
                     if (anim.centerPanel) {
-                        anim.centerPanel.DOShakeScale(strength, shakeTime)
-                                        .OnComplete(() =>{
-                                            finMergeFlag = true;
-                                        });
+                        anim.centerPanel
+                        .DOShakeScale(strength, shakeTime)
+                        .OnComplete(() =>{
+                            finMergeFlag = true;
+                        });
                     }
                     if (i >= MoveAnimList.Count - 1) finMergeFlag = true;
                 });
@@ -90,7 +91,7 @@ public class TweenAnimation : MonoBehaviour
                        .SetDelay(anim.duration);
             anim.target.DOShakeScale(strength, shakeTime)
                        .OnComplete(() => {
-                           anim.onComplete();
+                           anim.onComplete?.Invoke();
                            if (i >= MoveAnimList.Count - 1) {
                                finFlag = true;
                                anim.target.DOKill();

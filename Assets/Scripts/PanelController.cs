@@ -6,6 +6,7 @@ using UniRx;
 using UniRx.Triggers;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using System.Linq;
 
 public class PanelController : MonoBehaviour
 {
@@ -145,7 +146,7 @@ public class PanelController : MonoBehaviour
         if (!ValidMovement()) {
             currentPanelObj.transform.position += Vector3.up;
             SyncGridWithTrans(currentPanel);
-            StartCoroutine(OrganizeGrid());
+            StartCoroutine(MergePanel());
         }
     }
 
@@ -158,18 +159,17 @@ public class PanelController : MonoBehaviour
             break;
         }
         SyncGridWithTrans(currentPanel);
-        StartCoroutine(OrganizeGrid());
+        StartCoroutine(MergePanel());
     }
 
-    private IEnumerator OrganizeGrid() {
-
+    private IEnumerator MergePanel() {
         onProcessing = true;
 
         movePanels.Add(currentPanel);
 
         while (movePanels.Count > 0) {
-            var checkNextPanelCor = StartCoroutine(CheckNextToPanel(movePanels));
-            yield return checkNextPanelCor;
+            var checkNextPanelCor = CheckNextToPanel(movePanels);
+            yield return StartCoroutine(checkNextPanelCor);
 
             movePanels.Clear();
             movePanelIndexes.Clear();
@@ -200,8 +200,7 @@ public class PanelController : MonoBehaviour
                         TweenAnimation.RegistMoveAnim(
                             grid[x, y].transform,
                             new Vector3(blankX, blankY, 0),
-                            downMoveDuration,
-                            () => { }
+                            downMoveDuration
                         );
                         (blankX, blankY) = (x, y);
                         movePanelIndexes.Add(Tuple.Create(x, y));
@@ -219,6 +218,8 @@ public class PanelController : MonoBehaviour
                 movePanels.Add(panel);
                 grid[index.Item1, index.Item2] = null;
             }
+            movePanels.AddRange(AnimedPanel);
+            movePanels = movePanels.Distinct().ToList();
         }
 
         if (grid[(int)instantiatePos.x, (int)instantiatePos.y]) {
@@ -233,7 +234,11 @@ public class PanelController : MonoBehaviour
         onProcessing = false;
     }
 
+    private List<Panel> AnimedPanel = new List<Panel>();
+
     private IEnumerator CheckNextToPanel(List<Panel> movePanels) {
+
+        AnimedPanel.Clear();
 
         foreach (var panel in movePanels) {
             int roundX = Mathf.RoundToInt(panel.transform.position.x);
@@ -241,25 +246,22 @@ public class PanelController : MonoBehaviour
             int nextNums = 0;
 
             Vector3 purpose = new Vector3(roundX, roundY, 0);
-            if (ValidPanel(roundX - 1, roundY) && grid[roundX - 1, roundY].getPanelIndex == panel.getPanelIndex) {
+
+            Action<int, int> _callback = (int x, int y) => {
                 nextNums++;
-                grid[roundX - 1, roundY].gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
-                TweenAnimation.RegistMoveAnim(grid[roundX - 1, roundY].transform, purpose, addMoveDuration, () => RemoveGrid(roundX - 1, roundY), panel.transform);
-            }
-            if (ValidPanel(roundX + 1, roundY) && grid[roundX + 1, roundY].getPanelIndex == panel.getPanelIndex) {
-                nextNums++;
-                grid[roundX + 1, roundY].gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
-                TweenAnimation.RegistMoveAnim(grid[roundX + 1, roundY].transform, purpose, addMoveDuration, () => RemoveGrid(roundX + 1, roundY), panel.transform);
-            }
-            if (ValidPanel(roundX, roundY - 1) && grid[roundX, roundY - 1].getPanelIndex == panel.getPanelIndex) {
-                nextNums++;
-                grid[roundX, roundY - 1].gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
-                TweenAnimation.RegistMoveAnim(grid[roundX, roundY - 1].transform, purpose, addMoveDuration, () => RemoveGrid(roundX, roundY - 1), panel.transform);
-            }
+                grid[x, y].mergeFlag = true;
+                grid[x, y].gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
+                TweenAnimation.RegistMoveAnim(grid[x, y].transform, purpose, addMoveDuration, () => RemoveGrid(x, y), panel.transform);
+            };
+
+            if (IsEqualNextPanelIndex(panel, roundX - 1, roundY)) _callback(roundX - 1, roundY);
+            if (IsEqualNextPanelIndex(panel, roundX + 1, roundY)) _callback(roundX + 1, roundY);
+            if (IsEqualNextPanelIndex(panel, roundX, roundY - 1)) _callback(roundX, roundY - 1);
 
             panel.AddIndex(nextNums);
             if (nextNums > 0) {
                 scoreController.AddScore(panel.getPanelNum);
+                AnimedPanel.Add(panel);
             }
         }
 
@@ -267,15 +269,12 @@ public class PanelController : MonoBehaviour
         yield return animCoroutine;
     }
 
+    private bool IsEqualNextPanelIndex(Panel panel, int x, int y) => ValidPanel(x, y) && grid[x, y].getPanelIndex == panel.getPanelIndex && !grid[x, y].mergeFlag;
+
     private void SyncGridWithTrans(Panel panel) {
         int roundX = Mathf.RoundToInt(panel.transform.position.x);
         int roundY = Mathf.RoundToInt(panel.transform.position.y);
         grid[roundX, roundY] = panel;
-    }
-
-    private void SetGrid(Panel panel, int x, int y) {
-        grid[x, y] = panel;
-        grid[x, y].transform.position = new Vector3(x, y, 0);
     }
 
     private void RemoveGrid(int x, int y) {
