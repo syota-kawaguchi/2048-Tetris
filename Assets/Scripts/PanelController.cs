@@ -25,9 +25,6 @@ public class PanelController : MonoBehaviour
     [SerializeField]
     private Button holdButton;
 
-    const int WIDTH  = 5;
-    const int HEIGHT = 7;
-
     //指数自動生成の下限と上限
     private int minIndex = 1;
     private int maxIndex = 8;
@@ -43,10 +40,6 @@ public class PanelController : MonoBehaviour
 
     //パネルが下に到達したときTrue
     private bool onProcessing = false;
-
-    private static Panel[,] grid  = new Panel[WIDTH, HEIGHT];
-    private static List<Panel> movePanels = new List<Panel>();
-    private static List<Tuple<int, int>> movePanelIndexes = new List<Tuple<int, int>>();
 
     [SerializeField]
     private GameObject panelPrefab;
@@ -76,6 +69,9 @@ public class PanelController : MonoBehaviour
 
     [SerializeField]
     private float mergeDuration = 0.5f; //パネルが合体してから次の処理までの間時間
+
+    [SerializeField]
+    private float gameOverSceneDuration = 1.0f;
 
     void Start() {
 
@@ -112,10 +108,6 @@ public class PanelController : MonoBehaviour
         CreateNewPanel();
     }
 
-    public void Update() {
-        Debug.Log("horizontal : " + inputManager.InputHorizontal());
-    }
-
     private bool OnDenyInput() {
         return !currentPanelObj || onProcessing || Pause.onPause;
     }
@@ -145,142 +137,184 @@ public class PanelController : MonoBehaviour
 
         if (!ValidMovement()) {
             currentPanelObj.transform.position += Vector3.up;
-            SyncGridWithTrans(currentPanel);
-            StartCoroutine(MergePanel());
+            Grid.Add(currentPanel);
+            StartCoroutine(FallAndMerge(currentPanel));
         }
     }
 
     private void MoveDownBottom(Panel panel) {
         if (!panel) return;
         int roundX = Mathf.RoundToInt(panel.transform.position.x);
-        for (int roundY = 0; roundY < HEIGHT; roundY++) {
-            if (grid[roundX, roundY] != null) continue;
+        for (int roundY = 0; roundY < Grid.HEIGHT; roundY++) {
+            if (!Grid.IsBlank(roundX, roundY)) continue;
             panel.transform.position = new Vector3(roundX, roundY, 0);
             break;
         }
-        SyncGridWithTrans(currentPanel);
-        StartCoroutine(MergePanel());
+        Grid.Add(panel);
+        StartCoroutine(FallAndMerge(panel));
     }
 
-    private IEnumerator MergePanel() {
+    // TODO: merge後のPanelの値が隣り合う(又は上下)Panelの値と等しいときMergeが走らない  
+
+    private IEnumerator FallAndMerge(Panel panel) {
+
         onProcessing = true;
 
-        movePanels.Add(currentPanel);
+        var modefiedPanels = new List<Panel>() { panel };
 
-        while (movePanels.Count > 0) {
-            var checkNextPanelCor = CheckNextToPanel(movePanels);
-            yield return StartCoroutine(checkNextPanelCor);
+        while (true) {
+            var mergeCol = MergePanel(modefiedPanels);
+            yield return StartCoroutine(mergeCol);
+            Grid.Refresh();
 
-            movePanels.Clear();
-            movePanelIndexes.Clear();
+            var fallCol = FallPanel();
+            yield return StartCoroutine(fallCol); ;
+            Grid.Refresh();
 
-            for (int x = 0; x < WIDTH; x++) {
-                bool onModeDown = false;
-                int blankX = 0;
-                int blankY = 0;
-                int panelIndex = 0;
-                for (int y = 0; y < HEIGHT; y++) {
-                    if (!onModeDown && grid[x, y] != null){
-                        if (grid[x, y].getPanelIndex == panelIndex) {
-                            movePanels.Add(grid[x, y]);
-                        }
-                        panelIndex = grid[x, y].getPanelIndex;
-                        continue;
-                    }
+            modefiedPanels = fallCol.Current as List<Panel>;
+            modefiedPanels.AddRange(mergeCol.Current as List<Panel>);
+            modefiedPanels = modefiedPanels.Distinct().ToList();
 
-                    //空白のマスを見つけたとき
-                    if (!onModeDown && grid[x, y] == null) {
-                        onModeDown = true;         //次マスを見つけたとき下にずらすフラグ
-                        (blankX, blankY) = (x, y);
-                        continue;
-                    }
-
-                    //下にずらすパネルを実効するアニメーションとして登録
-                    if (onModeDown && grid[x, y] != null) {
-                        TweenAnimation.RegistMoveAnim(
-                            grid[x, y].transform,
-                            new Vector3(blankX, blankY, 0),
-                            downMoveDuration
-                        );
-                        (blankX, blankY) = (x, y);
-                        movePanelIndexes.Add(Tuple.Create(x, y));
-                        continue;
-                    }
-                }
-            }
-
-            var animCoroutrine = TweenAnimation.MoveAnimRun();//TweenAnimation.MoveAnimRunShake(shakeStrength, shakeDuration);
-            yield return animCoroutrine;
-
-            foreach (var index in movePanelIndexes) {
-                SyncGridWithTrans(grid[index.Item1, index.Item2]);
-                var panel = grid[index.Item1, index.Item2];
-                movePanels.Add(panel);
-                grid[index.Item1, index.Item2] = null;
-            }
-            movePanels.AddRange(AnimedPanel);
-            movePanels = movePanels.Distinct().ToList();
-        }
-
-        if (grid[(int)instantiatePos.x, (int)instantiatePos.y]) {
-            StartCoroutine(GameOver());
-            yield break;
+            if (modefiedPanels.Count == 0) break;
         }
 
         yield return new WaitForSeconds(nextRoopDuration);
+
+        if (IsGameOver()) {
+            yield return new WaitForSeconds(gameOverSceneDuration);
+
+            gameOverFlag = true;
+            PlayerPrefs.SetInt("Score", scoreController.getScore);
+            SceneManager.LoadScene("GameOverScene");
+            yield break;
+        }
 
         CreateNewPanel();
 
         onProcessing = false;
     }
 
-    private List<Panel> AnimedPanel = new List<Panel>();
+    private IEnumerator FallPanel() {
+        var fallablePanelList = new List<Panel>();
 
-    private IEnumerator CheckNextToPanel(List<Panel> movePanels) {
+        //下に詰めるパネルの探索＆落下アニメーションの登録
+        for (int x = 0; x < Grid.WIDTH; x++) {
+            var enablePlaceY = Grid.GetEnablePlaceY(x);
 
-        AnimedPanel.Clear();
+            if (enablePlaceY < 0) continue;
 
-        foreach (var panel in movePanels) {
-            int roundX = Mathf.RoundToInt(panel.transform.position.x);
-            int roundY = Mathf.RoundToInt(panel.transform.position.y);
-            int nextNums = 0;
+            for (int y = enablePlaceY+1; y < Grid.HEIGHT; y++) {
+                var panel = Grid.GetPanel(x, y);
 
-            Vector3 purpose = new Vector3(roundX, roundY, 0);
+                if (!panel) continue;
 
-            Action<int, int> _callback = (int x, int y) => {
-                nextNums++;
-                grid[x, y].mergeFlag = true;
-                grid[x, y].gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
-                TweenAnimation.RegistMoveAnim(grid[x, y].transform, purpose, addMoveDuration, () => RemoveGrid(x, y), panel.transform);
-            };
+                fallablePanelList.Add(panel);
+                TweenAnimation.RegistMoveAnim(panel.transform, new Vector3(x, enablePlaceY, 0), downMoveDuration);
 
-            if (IsEqualNextPanelIndex(panel, roundX - 1, roundY)) _callback(roundX - 1, roundY);
-            if (IsEqualNextPanelIndex(panel, roundX + 1, roundY)) _callback(roundX + 1, roundY);
-            if (IsEqualNextPanelIndex(panel, roundX, roundY - 1)) _callback(roundX, roundY - 1);
-
-            panel.AddIndex(nextNums);
-            if (nextNums > 0) {
-                scoreController.AddScore(panel.getPanelNum);
-                AnimedPanel.Add(panel);
+                enablePlaceY++; //次の空白の場所へと更新する
             }
         }
 
-        var animCoroutine = StartCoroutine(TweenAnimation.MergePanelAnim(shakeStrength, shakeDuration, mergeDuration));
-        yield return animCoroutine;
+        //アニメーションの実行
+        var animCoroutrine = TweenAnimation.MoveAnimRun();
+        yield return StartCoroutine(animCoroutrine);
+        yield return fallablePanelList;
     }
 
-    private bool IsEqualNextPanelIndex(Panel panel, int x, int y) => ValidPanel(x, y) && grid[x, y].getPanelIndex == panel.getPanelIndex && !grid[x, y].mergeFlag;
+    //Want: Actionをもっと効率的に設定したい
 
-    private void SyncGridWithTrans(Panel panel) {
-        int roundX = Mathf.RoundToInt(panel.transform.position.x);
-        int roundY = Mathf.RoundToInt(panel.transform.position.y);
-        grid[roundX, roundY] = panel;
+    private IEnumerator MergePanel(List<Panel> fellPanel) {
+
+        var modifiedPanels = new List<Panel>();
+
+        foreach (var panel in fellPanel) {
+            //Debug
+            if (!panel) {
+                Debug.LogError("panel is null");
+                continue;
+            }
+
+            int roundX = Mathf.RoundToInt(panel.transform.position.x);
+            int roundY = Mathf.RoundToInt(panel.transform.position.y);
+            var purpose = panel.transform.position;
+
+            Action<int, int> SetMergePanelAnim = (int x, int y) => {
+                var _panel = Grid.GetPanel(x, y);
+
+                _panel.mergeFlag = true;
+                _panel.gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
+
+                panel.AddIndex(1);
+                TweenAnimation.RegistMoveAnim(
+                    _panel.transform,
+                    purpose,
+                    downMoveDuration,
+                    () => {
+                        Grid.Remove(x, y);
+                        panel.UpdateIndex();
+                        panel.mergeFlag = false;
+                        scoreController.AddScore(panel.getPanelNum);
+                    }
+                );
+            };
+            //right
+            for (int x = roundX + 1; x < Grid.WIDTH; x++) {
+                var _panel = Grid.GetPanel(x, roundY);
+                if (IsQuitSearchMergePanel(panel, _panel)) break;
+
+                SetMergePanelAnim(x, roundY);
+            }
+            //left
+            for (int x = roundX - 1; 0 <= x; x--) {
+                var _panel = Grid.GetPanel(x, roundY);
+                if (IsQuitSearchMergePanel(panel, _panel)) break;
+
+                SetMergePanelAnim(x, roundY);
+            }
+            //Up
+            for (int y = roundY + 1; y < Grid.HEIGHT; y++) {
+                var _panel = Grid.GetPanel(roundX, y);
+                if (IsQuitSearchMergePanel(panel, _panel)) break;
+
+                SetMergePanelAnim(roundX, y);
+            }
+            //Down
+            if (roundY - 1 < 0) continue;
+            var underPanel = Grid.GetPanel(roundX, roundY - 1);
+            if (underPanel && underPanel.getPanelIndex == panel.getPanelIndex) {
+                underPanel.mergeFlag = true;
+                underPanel.gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
+
+                panel.AddIndex(1);
+                TweenAnimation.RegistMoveAnim(
+                    underPanel.transform, 
+                    purpose, 
+                    downMoveDuration, 
+                    () => {
+                        Grid.Remove(roundX, roundY - 1);
+                        panel.UpdateIndex();
+                        panel.mergeFlag = false;
+                        scoreController.AddScore(panel.getPanelNum);
+                    }
+                );
+            }
+
+            if (panel.GetDeltaIndex > 0) {
+                panel.mergeFlag = true;
+                modifiedPanels.Add(panel);
+            }
+        }
+
+        var animCoroutrine = TweenAnimation.MoveAnimRun();
+        yield return StartCoroutine(animCoroutrine);
+        yield return modifiedPanels;
     }
 
-    private void RemoveGrid(int x, int y) {
-        if (OutOfRange(x, y)) return;
-        Destroy(grid[x, y].gameObject);
-        grid[x, y] = null;
+    private bool IsQuitSearchMergePanel(Panel p1, Panel p2) {//p1 <- p2
+        if (!p1 || !p2) return true;
+        if (p1.mergeFlag || p2.mergeFlag) return true;
+        if (p1.getPanelIndex != p2.getPanelIndex) return true;
+        return false;
     }
 
     private int GenerateIndex() {
@@ -291,28 +325,13 @@ public class PanelController : MonoBehaviour
         int roundX = Mathf.RoundToInt(currentPanelObj.transform.position.x);
         int roundY = Mathf.RoundToInt(currentPanelObj.transform.position.y);
 
-        if (OutOfRange(roundX, roundY)) return false;
-        if (grid[roundX, roundY] != null) return false;
+        if (Grid.OutOfRange(roundX, roundY)) return false;
+        if (!Grid.IsBlank(roundX, roundY)) return false;
         return true;
     }
 
-    private bool ValidPanel(int x, int y) {
-        return (0 <= x && x < WIDTH) && (0 <= y && y <= HEIGHT) && grid[x, y] != null;
-    }
-
-    private bool OutOfRange(int x, int y) {
-        return x < 0 || WIDTH <= x || y < 0 || HEIGHT <= y;
-    }
-
     public void Restart() {
-        for (int i = 0; i < WIDTH; i++) {
-            for (int j = 0; j < HEIGHT; j++) {
-                if(grid[i, j])Destroy(grid[i, j].gameObject);
-                grid[i, j] = null;
-            }
-        }
-        movePanels.Clear();
-        movePanelIndexes.Clear();
+        Grid.Delete();
         currentPanel = null;
         Destroy(currentPanelObj);
         nextPanelCollection.Clear();
@@ -322,11 +341,7 @@ public class PanelController : MonoBehaviour
         CreateNewPanel();
     }
 
-    private IEnumerator GameOver() {
-        yield return new WaitForSeconds(1.0f);
-
-        gameOverFlag = true;
-        PlayerPrefs.SetInt("Score", scoreController.getScore);
-        SceneManager.LoadScene("GameOverScene");
+    private bool IsGameOver() {
+        return Grid.GetPanel((int)instantiatePos.x, (int)instantiatePos.y) != null;
     }
 }

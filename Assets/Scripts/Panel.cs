@@ -14,6 +14,8 @@ public class Panel : MonoBehaviour
 
     public bool mergeFlag = false;
 
+    private int deltaIndex = 0;
+
     private ReactiveProperty<int> index = new ReactiveProperty<int>(1);
 
     public void Init(int initIndex) {
@@ -36,13 +38,23 @@ public class Panel : MonoBehaviour
     }
 
     //指数計算
-    public void AddIndex(int num) {
-        index.Value += num;
-        panel.color = PanelColors.GetColor(index.Value);
+    public void AddIndex(int value) {
+        deltaIndex += value;
+    }
+
+    public int GetDeltaIndex {
+        get { return deltaIndex; }
     }
 
     //2の累乗を表示
     public int getPanelNum {
         get { return (int)Math.Pow(2, index.Value); }
+    }
+
+    public void UpdateIndex() {
+        if (deltaIndex == 0) return;
+        index.Value += deltaIndex;
+        deltaIndex = 0;
+        panel.color = PanelColors.GetColor(index.Value);
     }
 }
