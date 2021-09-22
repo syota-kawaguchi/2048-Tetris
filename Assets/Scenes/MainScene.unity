@@ -4546,7 +4546,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &831150477
 RectTransform:
   m_ObjectHideFlags: 0
@@ -8132,6 +8132,7 @@ MonoBehaviour:
   shakeDuration: 0.3
   nextRoopDuration: 0.5
   mergeDuration: 0.5
+  gameOverSceneDuration: 1
 --- !u!4 &1542931258
 Transform:
   m_ObjectHideFlags: 0
