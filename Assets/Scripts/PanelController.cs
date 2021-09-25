@@ -34,6 +34,7 @@ public class PanelController : MonoBehaviour
     //move down TimerSpan
     [SerializeField]
     private float moveDownTimeSpan = 1.0f;
+    private float currentTime = 0;
 
      [SerializeField]
     private float inputTimeSpan = 0.3f;
@@ -73,7 +74,12 @@ public class PanelController : MonoBehaviour
     [SerializeField]
     private float gameOverSceneDuration = 1.0f;
 
+    [HideInInspector]
+    public bool OnModeDebug = false;
+
     void Start() {
+
+        if (OnModeDebug) return;
 
         Debug.Log($"Screen : {Screen.orientation}");
         Debug.Log($"Screen size width : {Screen.width}");
@@ -92,12 +98,12 @@ public class PanelController : MonoBehaviour
             .Where(_ => !OnDenyInput())
             .Subscribe(_ => MoveDownBottom(currentPanel));
 
-        Observable.Interval(TimeSpan.FromSeconds(moveDownTimeSpan))
-            .Where(_ => !OnDenyInput())
-            .Subscribe(x => {
-                MoveDown();
-            })
-            .AddTo(gameObject);
+        //Observable.Interval(TimeSpan.FromSeconds(moveDownTimeSpan))
+        //    .Where(_ => !OnDenyInput())
+        //    .Subscribe(x => {
+        //        MoveDown();
+        //    })
+        //    .AddTo(gameObject);
 
         holdButton.onClick.AsObservable()
             .Subscribe(_ => OnClickHoldButton());
@@ -106,6 +112,19 @@ public class PanelController : MonoBehaviour
             .Subscribe((CollectionReplaceEvent<int> i) => nextPanelView.SetNextPanel(i.NewValue));
 
         CreateNewPanel();
+    }
+
+    private void Update() {
+        currentTime += Time.deltaTime;
+        if (OnDenyInput()) {
+            currentTime = 0;
+            return;
+        }
+
+        if (currentTime >= moveDownTimeSpan) {
+            MoveDown();
+            currentTime = 0;
+        }
     }
 
     private bool OnDenyInput() {
@@ -156,7 +175,7 @@ public class PanelController : MonoBehaviour
 
     // TODO: merge後のPanelの値が隣り合う(又は上下)Panelの値と等しいときMergeが走らない  
 
-    private IEnumerator FallAndMerge(Panel panel) {
+    public IEnumerator FallAndMerge(Panel panel) {
 
         onProcessing = true;
 
@@ -178,6 +197,8 @@ public class PanelController : MonoBehaviour
             if (modefiedPanels.Count == 0) break;
         }
 
+        if (OnModeDebug) yield break;
+
         yield return new WaitForSeconds(nextRoopDuration);
 
         if (IsGameOver()) {
@@ -190,6 +211,8 @@ public class PanelController : MonoBehaviour
         }
 
         CreateNewPanel();
+
+        currentTime = 0;
 
         onProcessing = false;
     }
@@ -216,7 +239,7 @@ public class PanelController : MonoBehaviour
         }
 
         //アニメーションの実行
-        var animCoroutrine = TweenAnimation.MoveAnimRun();
+        var animCoroutrine = TweenAnimation.RunMoveAnim();
         yield return StartCoroutine(animCoroutrine);
         yield return fallablePanelList;
     }
@@ -254,7 +277,8 @@ public class PanelController : MonoBehaviour
                         panel.UpdateIndex();
                         panel.mergeFlag = false;
                         scoreController.AddScore(panel.getPanelNum);
-                    }
+                    },
+                    panel.transform
                 );
             };
             //right
@@ -279,24 +303,26 @@ public class PanelController : MonoBehaviour
                 SetMergePanelAnim(roundX, y);
             }
             //Down
-            if (roundY - 1 < 0) continue;
-            var underPanel = Grid.GetPanel(roundX, roundY - 1);
-            if (underPanel && underPanel.getPanelIndex == panel.getPanelIndex) {
-                underPanel.mergeFlag = true;
-                underPanel.gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
+            if (roundY - 1 >= 0) {
+                var underPanel = Grid.GetPanel(roundX, roundY - 1);
+                if (underPanel && underPanel.getPanelIndex == panel.getPanelIndex) {
+                    underPanel.mergeFlag = true;
+                    underPanel.gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
 
-                panel.AddIndex(1);
-                TweenAnimation.RegistMoveAnim(
-                    underPanel.transform, 
-                    purpose, 
-                    downMoveDuration, 
-                    () => {
-                        Grid.Remove(roundX, roundY - 1);
-                        panel.UpdateIndex();
-                        panel.mergeFlag = false;
-                        scoreController.AddScore(panel.getPanelNum);
-                    }
-                );
+                    panel.AddIndex(1);
+                    TweenAnimation.RegistMoveAnim(
+                        underPanel.transform,
+                        purpose,
+                        downMoveDuration,
+                        () => {
+                            Grid.Remove(roundX, roundY - 1);
+                            panel.UpdateIndex();
+                            panel.mergeFlag = false;
+                            scoreController.AddScore(panel.getPanelNum);
+                        },
+                        panel.transform
+                    );
+                }
             }
 
             if (panel.GetDeltaIndex > 0) {
@@ -305,7 +331,7 @@ public class PanelController : MonoBehaviour
             }
         }
 
-        var animCoroutrine = TweenAnimation.MoveAnimRun();
+        var animCoroutrine = TweenAnimation.RunMergeAnim(shakeStrength, shakeDuration, mergeDuration);
         yield return StartCoroutine(animCoroutrine);
         yield return modifiedPanels;
     }
@@ -331,7 +357,7 @@ public class PanelController : MonoBehaviour
     }
 
     public void Restart() {
-        Grid.Delete();
+        Grid.RemoveAll();
         currentPanel = null;
         Destroy(currentPanelObj);
         nextPanelCollection.Clear();

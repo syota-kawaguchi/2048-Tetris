@@ -94,7 +94,7 @@ public class Grid : MonoBehaviour
         ShowGrid.OnChangeGrid.OnNext(grid);
     }
 
-    public static void Delete() {
+    public static void RemoveAll() {
         for (int i = 0; i < WIDTH; i++) {
             for (int j = 0; j < HEIGHT; j++) {
                 if (grid[i, j]) Destroy(grid[i, j].gameObject);

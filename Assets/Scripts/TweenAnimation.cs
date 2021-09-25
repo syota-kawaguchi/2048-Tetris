@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System;
 using UnityEngine;
 using DG.Tweening;
-using TMPro;
+using AudioManager;
 
 public class TweenAnimation : MonoBehaviour
 {
@@ -14,7 +14,7 @@ public class TweenAnimation : MonoBehaviour
         MoveAnimList.Add(new TweenMoveAnim(target, purpose, duration, onComplete, centerPanel));
     }
 
-    public static IEnumerator MoveAnimRun() {
+    public static IEnumerator RunMoveAnim() {
         if (MoveAnimList.Count == 0) yield break;
 
         bool finFlag = false;
@@ -29,6 +29,31 @@ public class TweenAnimation : MonoBehaviour
         }
         MoveAnimList.Clear();
         yield return new WaitUntil(() => finFlag);
+    }
+
+    public static IEnumerator RunMergeAnim(float strength, float shakeTime, float mergeDuration) {
+        if (MoveAnimList.Count == 0) yield break;
+
+        bool finMergeFlag = false;
+        for (int i = 0; i < MoveAnimList.Count; i++) {
+            var anim = MoveAnimList[i];
+            anim.target
+                .DOMove(anim.purpose, anim.duration)
+                .OnComplete(() => {
+                    anim.onComplete?.Invoke();
+                    SEManager.Instance.Play(SEPath.TAP_SOUND1);
+                    if (i >= MoveAnimList.Count - 1 && anim.centerPanel) {
+                        anim.centerPanel
+                        .DOShakeScale(strength, shakeTime)
+                        .OnComplete(() => {
+                            finMergeFlag = true;
+                        });
+                    }
+                });
+        }
+        MoveAnimList.Clear();
+        yield return new WaitUntil(() => finMergeFlag);
+        //yield return new WaitForSeconds(mergeDuration);
     }
 
     public static IEnumerator MoveThenDestroyText() {
@@ -50,35 +75,6 @@ public class TweenAnimation : MonoBehaviour
         }
         MoveAnimList.Clear();
         yield return new WaitUntil(() => finFlag);
-    }
-
-    public static IEnumerator MergePanelAnim(float strength, float shakeTime, float mergeDuration) {
-        if (MoveAnimList.Count == 0) yield break;
-
-        bool finMergeFlag = false;
-        for (int i = 0; i < MoveAnimList.Count; i++) {
-            var anim = MoveAnimList[i];
-            anim.target
-                .DOMove(anim.purpose, anim.duration)
-                .OnComplete(() => {
-                    anim.onComplete?.Invoke();
-                    if (anim.centerPanel) {
-                        anim.centerPanel
-                        .DOShakeScale(strength, shakeTime)
-                        .OnComplete(() =>{
-                            finMergeFlag = true;
-                        });
-                    }
-                    if (i >= MoveAnimList.Count - 1) finMergeFlag = true;
-                });
-            DOVirtual.DelayedCall(
-                destroyDuration,
-                () => DestroyChildren(anim.target)
-            );
-        }
-        MoveAnimList.Clear();
-        yield return new WaitUntil(() => finMergeFlag);
-        yield return new WaitForSeconds(mergeDuration);
     }
 
     public static IEnumerator MoveAnimRunShake(float strength, float shakeTime) {
