@@ -12,6 +12,7 @@ public class ScoreController : MonoBehaviour
     private ReactiveProperty<int> score = new ReactiveProperty<int>(0);
     public void AddScore(int panelNum) {
         score.Value += panelNum;
+        scoreView.AddScoreAnimation(panelNum.ToString());
     }
 
     public int getScore {
