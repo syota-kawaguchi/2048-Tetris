@@ -43,9 +43,11 @@ public class TweenAnimation : MonoBehaviour
                     anim.onComplete?.Invoke();
                     SEManager.Instance.Play(SEPath.TAP_SOUND1);
                     if (i >= MoveAnimList.Count - 1 && anim.centerPanel) {
+                        var tmpScale = anim.centerPanel.localScale;
                         anim.centerPanel
                         .DOShakeScale(strength, shakeTime)
                         .OnComplete(() => {
+                            anim.centerPanel.localScale = tmpScale;
                             finMergeFlag = true;
                         });
                     }

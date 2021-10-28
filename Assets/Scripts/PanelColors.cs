@@ -16,9 +16,14 @@ public class PanelColors : MonoBehaviour {
     static readonly Color32 color1024 = new Color32(227, 187, 12, 255);
     static readonly Color32 color2048 = new Color32(235, 195, 2, 255);
     static readonly Color32 color4096 = new Color32(105, 215, 142, 255);
+    static readonly Color32 color8192 = new Color32(62, 171, 170, 255);
+    static readonly Color32 color16384 = new Color32(27, 139, 176, 255);
+    static readonly Color32 color32768 = new Color32(0, 100, 195, 255);
+    static readonly Color32 color65536 = new Color32(32, 0, 195, 255);
+    static readonly Color32 color131072 = new Color32(154, 0, 195, 255);
 
     public static Color GetColor(int i) {
-        switch (i) {
+        switch (i % 18) {
             case 1: return color2;
             case 2: return color4;
             case 3: return color8;
@@ -31,6 +36,12 @@ public class PanelColors : MonoBehaviour {
             case 10: return color1024;
             case 11: return color2048;
             case 12: return color4096;
+            case 13: return color8192;
+            case 14: return color16384;
+            case 15: return color32768;
+            case 16: return color65536;
+            case 17: return color131072;
+            case 0: return color1;
             default: return color1;
         }
     }

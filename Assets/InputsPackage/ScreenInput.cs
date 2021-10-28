@@ -23,6 +23,7 @@ public class ScreenInput : SingletonMonoBehaviour<ScreenInput>
     [SerializeField]
     private int NoneCountMax = 2;
     private int NoneCountNow = 0;
+    private float DoubleTapSpan = 0.2f;
     // スワイプ入力距離
     private Vector2 SwipeRange;
     // 入力方向記録用
@@ -33,12 +34,18 @@ public class ScreenInput : SingletonMonoBehaviour<ScreenInput>
     private Direction flickDirection = Direction.NONE;
     private Direction swipeDirection = Direction.NONE;
 
+    private bool doubleTap = false;
+    private bool isDoubleTapStart = false;
+    private float doubleTapTime = 0;
+    [SerializeField]
+    private int enableDoubleTapFrame = 2; //ダブルタップが有効であるフレーム数
+    private int currentDoubleTapFrame = 0;
+    [SerializeField]
+    private float tapDuration = 0.2f;
 
     // Update is called once per frame
     void Update() {
         GetInputVector();
-        //Debug.Log($"current flick Direction : {flickDirection}");
-        //Debug.Log($"current swipe Direction : {swipeDirection}");
     }
 
     // 入力の取得
@@ -47,6 +54,7 @@ public class ScreenInput : SingletonMonoBehaviour<ScreenInput>
         if (Application.isEditor) {
             if (Input.GetMouseButtonDown(0)) {
                 inputStart = Input.mousePosition;
+                isDoubleTapStart = true;
             }
             else if (Input.GetMouseButton(0)) {
                 inputMove = Input.mousePosition;
@@ -59,6 +67,32 @@ public class ScreenInput : SingletonMonoBehaviour<ScreenInput>
             else if (flickDirection != Direction.NONE || swipeDirection != Direction.NONE) {
                 ResetParameter();
             }
+
+            if (doubleTap) {
+                currentDoubleTapFrame++;
+                if (enableDoubleTapFrame < currentDoubleTapFrame) {
+                    currentDoubleTapFrame = 0;
+                    doubleTap = false;
+                }
+            }
+
+            if (isDoubleTapStart) {
+                doubleTapTime += Time.deltaTime;
+                if (doubleTapTime < tapDuration) {
+                    if (Input.GetMouseButtonDown(0)) {
+                        isDoubleTapStart = false;
+                        doubleTap = true;
+                        doubleTapTime = 0;
+                    }
+                }
+                else {
+                    isDoubleTapStart = false;
+                    doubleTapTime = 0;
+                }
+            }
+            else {
+                if (Input.GetMouseButtonDown(0)) isDoubleTapStart = true;
+            }
         }
         // 端末上での操作取得
         else {
@@ -66,6 +100,7 @@ public class ScreenInput : SingletonMonoBehaviour<ScreenInput>
                 Touch touch = Input.touches[0];
                 if (touch.phase == TouchPhase.Began) {
                     inputStart = touch.position;
+                    if (touch.tapCount > 1) doubleTap = true;
                 }
                 else if (touch.phase == TouchPhase.Moved) {
                     inputMove = Input.mousePosition;
@@ -78,6 +113,7 @@ public class ScreenInput : SingletonMonoBehaviour<ScreenInput>
             }
             else if (flickDirection != Direction.NONE || swipeDirection != Direction.NONE) {
                 ResetParameter();
+                if (doubleTap) doubleTap = false;
             }
         }
     }
@@ -149,9 +185,17 @@ public class ScreenInput : SingletonMonoBehaviour<ScreenInput>
         }
     }
 
+    public bool DoubleTap() {
+        return doubleTap;
+    }
+
     //スワイプ量の取得
     public float getSwipeValueX {
         get { return SwipeRange.x; }
+    }
+
+    public Vector3 getTouchPos {
+        get { return inputStart; }
     }
 
     // スワイプ量の取得

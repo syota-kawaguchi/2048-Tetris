@@ -1,12 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System;
+using System.Linq;
 using UnityEngine;
-using UniRx;
-using UniRx.Triggers;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
-using System.Linq;
+using UniRx;
+using UniRx.Triggers;
+using AudioManager;
 
 public class PanelController : MonoBehaviour
 {
@@ -54,7 +55,7 @@ public class PanelController : MonoBehaviour
 
     [Header("Animation")]
     [SerializeField]
-    private float addMoveDuration = 0.15f;
+    private float addMoveDuration = 0.3f;
 
     [SerializeField]
     private float downMoveDuration = 0.3f;
@@ -77,6 +78,10 @@ public class PanelController : MonoBehaviour
     [HideInInspector]
     public bool OnModeDebug = false;
 
+    [Header("SEVolume")]
+    [SerializeField]
+    private float fellVolume = 0.5f;
+
     void Start() {
 
         if (OnModeDebug) return;
@@ -98,15 +103,8 @@ public class PanelController : MonoBehaviour
             .Where(_ => !OnDenyInput())
             .Subscribe(_ => MoveDownBottom(currentPanel));
 
-        //Observable.Interval(TimeSpan.FromSeconds(moveDownTimeSpan))
-        //    .Where(_ => !OnDenyInput())
-        //    .Subscribe(x => {
-        //        MoveDown();
-        //    })
-        //    .AddTo(gameObject);
-
-        holdButton.onClick.AsObservable()
-            .Subscribe(_ => OnClickHoldButton());
+        //holdButton.onClick.AsObservable()
+        //    .Subscribe(_ => OnClickHoldButton());
 
         nextPanelCollection.ObserveReplace()
             .Subscribe((CollectionReplaceEvent<int> i) => nextPanelView.SetNextPanel(i.NewValue));
@@ -157,6 +155,7 @@ public class PanelController : MonoBehaviour
         if (!ValidMovement()) {
             currentPanelObj.transform.position += Vector3.up;
             Grid.Add(currentPanel);
+            SEManager.Instance.Play(SEPath.TAP_SOUND4, volumeRate:fellVolume);
             StartCoroutine(FallAndMerge(currentPanel));
         }
     }
@@ -170,10 +169,12 @@ public class PanelController : MonoBehaviour
             break;
         }
         Grid.Add(panel);
+        SEManager.Instance.Play(SEPath.TAP_SOUND4, volumeRate: fellVolume);
         StartCoroutine(FallAndMerge(panel));
     }
 
-    // TODO: merge後のPanelの値が隣り合う(又は上下)Panelの値と等しいときMergeが走らない  
+    // TODO: merge後のPanelの値が隣り合う(又は上下)Panelの値と等しいときMergeが走らない 
+    // 隣り合うパネルが落下パネルかつ値が等しいときバグる
 
     public IEnumerator FallAndMerge(Panel panel) {
 
@@ -189,6 +190,9 @@ public class PanelController : MonoBehaviour
             var fallCol = FallPanel();
             yield return StartCoroutine(fallCol); ;
             Grid.Refresh();
+            if (fallCol.Current == null) {
+                Debug.Log("Current is null");
+            }
 
             modefiedPanels = fallCol.Current as List<Panel>;
             modefiedPanels.AddRange(mergeCol.Current as List<Panel>);
@@ -261,67 +265,32 @@ public class PanelController : MonoBehaviour
             int roundY = Mathf.RoundToInt(panel.transform.position.y);
             var purpose = panel.transform.position;
 
-            Action<int, int> SetMergePanelAnim = (int x, int y) => {
-                var _panel = Grid.GetPanel(x, y);
-
-                _panel.mergeFlag = true;
-                _panel.gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
-
-                panel.AddIndex(1);
-                TweenAnimation.RegistMoveAnim(
-                    _panel.transform,
-                    purpose,
-                    downMoveDuration,
-                    () => {
-                        Grid.Remove(x, y);
-                        panel.UpdateIndex();
-                        panel.mergeFlag = false;
-                        scoreController.AddScore(panel.getPanelNum);
-                    },
-                    panel.transform
-                );
-            };
             //right
             for (int x = roundX + 1; x < Grid.WIDTH; x++) {
                 var _panel = Grid.GetPanel(x, roundY);
                 if (IsQuitSearchMergePanel(panel, _panel)) break;
 
-                SetMergePanelAnim(x, roundY);
+                SetMergePanelAnim(panel, purpose, x, roundY);
             }
             //left
             for (int x = roundX - 1; 0 <= x; x--) {
                 var _panel = Grid.GetPanel(x, roundY);
                 if (IsQuitSearchMergePanel(panel, _panel)) break;
 
-                SetMergePanelAnim(x, roundY);
+                SetMergePanelAnim(panel, purpose, x, roundY);
             }
             //Up
             for (int y = roundY + 1; y < Grid.HEIGHT; y++) {
                 var _panel = Grid.GetPanel(roundX, y);
                 if (IsQuitSearchMergePanel(panel, _panel)) break;
 
-                SetMergePanelAnim(roundX, y);
+                SetMergePanelAnim(panel, purpose, roundX, y);
             }
             //Down
             if (roundY - 1 >= 0) {
                 var underPanel = Grid.GetPanel(roundX, roundY - 1);
-                if (underPanel && underPanel.getPanelIndex == panel.getPanelIndex) {
-                    underPanel.mergeFlag = true;
-                    underPanel.gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
-
-                    panel.AddIndex(1);
-                    TweenAnimation.RegistMoveAnim(
-                        underPanel.transform,
-                        purpose,
-                        downMoveDuration,
-                        () => {
-                            Grid.Remove(roundX, roundY - 1);
-                            panel.UpdateIndex();
-                            panel.mergeFlag = false;
-                            scoreController.AddScore(panel.getPanelNum);
-                        },
-                        panel.transform
-                    );
+                if (!IsQuitSearchMergePanel(panel, underPanel)) {
+                    SetMergePanelAnim(panel, purpose, roundX, roundY - 1);
                 }
             }
 
@@ -341,6 +310,27 @@ public class PanelController : MonoBehaviour
         if (p1.mergeFlag || p2.mergeFlag) return true;
         if (p1.getPanelIndex != p2.getPanelIndex) return true;
         return false;
+    }
+
+    private void SetMergePanelAnim(Panel panel, Vector3 purpose, int x, int y) {
+        var _panel = Grid.GetPanel(x, y);
+
+        _panel.mergeFlag = true;
+        _panel.gameObject.GetComponent<SpriteRenderer>().sortingLayerName = "Back";
+
+        panel.AddIndex(1);
+        TweenAnimation.RegistMoveAnim(
+            _panel.transform,
+            purpose,
+            addMoveDuration,
+            () => {
+                Grid.Remove(x, y);
+                panel.UpdateIndex();
+                panel.mergeFlag = false;
+                scoreController.AddScore(panel.getPanelNum);
+            },
+            panel.transform
+        );
     }
 
     private int GenerateIndex() {

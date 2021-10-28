@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using UniRx;
+using AudioManager;
 public class StartScene : MonoBehaviour
 {
     [SerializeField]
@@ -11,6 +12,10 @@ public class StartScene : MonoBehaviour
 
     void Start() {
         startButton.onClick.AsObservable()
-            .Subscribe(_ => SceneManager.LoadScene("MainScene"));
+            .Subscribe(_ =>
+            {
+                SEManager.Instance.Play(SEPath.TAP_SOUND2);
+                SceneManager.LoadScene("MainScene");
+            });
     }
 }

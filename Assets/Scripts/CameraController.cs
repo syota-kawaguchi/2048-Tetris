@@ -14,7 +14,7 @@ public class CameraController : MonoBehaviour
         float aspect = (float)Screen.height / (float)Screen.width;
         //Debug.Log($"aspect : {aspect}");
         if (aspect >= 2) {
-            mainCamera.orthographicSize = 6.7f;
+            mainCamera.orthographicSize = 5.9f;
         } else {
             mainCamera.orthographicSize = 5.2f;
         }

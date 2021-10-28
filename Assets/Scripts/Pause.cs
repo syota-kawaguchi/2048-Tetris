@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using UniRx;
 using DG.Tweening;
+using AudioManager;
 
 public class Pause : MonoBehaviour
 {
@@ -28,6 +29,12 @@ public class Pause : MonoBehaviour
     [SerializeField]
     private Button quitButton;
 
+    [SerializeField]
+    private Button settingsButton;
+
+    [SerializeField]
+    private GameObject settingsPanel;
+
     [Header("Pause Panle Animation")]
     [SerializeField]
     private float initScaleRatio = 0.2f;
@@ -42,31 +49,40 @@ public class Pause : MonoBehaviour
     {
         pauseButton.onClick.AsObservable()
             .Subscribe(_ => {
-                onPause = true;
                 pausePanel.transform.DOScale(initScaleRatio, 0);
-                pausePanel.SetActive(true);
+                OnTapButton(true, true);
                 pausePanel.transform.DOScale(endScaleRatio, showPauseDuration);
             });
 
         resumeButton.onClick.AsObservable()
             .Subscribe(_ => {
-                onPause = false;
-                pausePanel.SetActive(false);
+                OnTapButton(false, false);
             });
 
         restartButton.OnClickAsObservable()
             .Subscribe(_ =>{
-                onPause = false;
+                OnTapButton(false, false);
                 panelController.Restart();
-                pausePanel.SetActive(false);
             });
 
         quitButton.OnClickAsObservable()
             .Subscribe(_ =>{
-                onPause = false;
+                OnTapButton(false, false);
                 SceneManager.LoadScene("StartScene");
             });
 
+        settingsButton.OnClickAsObservable()
+            .Subscribe(_ =>{
+                OnTapButton(true, true);
+                settingsPanel.SetActive(true);
+            });
+
         pausePanel.SetActive(false);
+    }
+
+    void OnTapButton(bool _onPause, bool activeSelf) {
+        onPause = _onPause;
+        pausePanel.SetActive(activeSelf);
+        SEManager.Instance.Play(SEPath.TAP_SOUND2);
     }
 }
