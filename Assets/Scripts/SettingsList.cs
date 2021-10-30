@@ -18,9 +18,9 @@ public class SettingsList : MonoBehaviour
     private TextMeshProUGUI itemName;
 
     [SerializeField]
-    private string[] itemNames;
+    private Operation[] items;
 
-    private IObserver<string> publisher;
+    private IObserver<int> publisher;
 
     private int index;
 
@@ -28,19 +28,19 @@ public class SettingsList : MonoBehaviour
     {
         index = 0;
 
-        itemName.text = itemNames[index];
+        itemName.text = items[index].ToString();
 
         leftButton.OnClickAsObservable().Subscribe(_ => {
             index--;
             if (index < 0) {
-                index = itemNames.Length - 1;
+                index = items.Length - 1;
             }
             OnChangedIndex();
         });
 
         rightButton.OnClickAsObservable().Subscribe(_ => {
             index++;
-            if (itemNames.Length <= index) {
+            if (items.Length <= index) {
                 index = 0;
             }
             OnChangedIndex();
@@ -48,16 +48,16 @@ public class SettingsList : MonoBehaviour
     }
 
     private void OnChangedIndex() {
-        if (itemNames == null || itemNames.Length == 0) return;
-        itemName.text = itemNames[index];
+        if (items == null || items.Length == 0) return;
+        itemName.text = items[index].ToString();
 
-        publisher.OnNext(itemNames[index]);
+        publisher.OnNext((int)items[index]);
     }
 
-    public void Init(string[] itemNames, IObserver<string> publisher, string initValue) {
-        this.itemNames = itemNames;
+    public void Init(Operation[] items, IObserver<int> publisher, Operation item) {
+        this.items = items;
         this.publisher = publisher;
 
-        itemName.text = initValue;
+        itemName.text = item.ToString();
     }
 }

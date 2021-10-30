@@ -35,8 +35,8 @@ public class Logger : MonoBehaviour
         if (!loggerPanel.activeSelf) return;
 
         if (settingsController.settings != null) {
-            jsonHorizontal.text = settingsController.settings.moveHorizontal;
-            jsonVertical.text = settingsController.settings.moveVertical;
+            jsonHorizontal.text = settingsController.settings.moveHorizontal.ToString();
+            jsonVertical.text = settingsController.settings.moveVertical.ToString();
         }
         else {
             jsonHorizontal.text = "---";

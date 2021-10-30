@@ -103,9 +103,6 @@ public class PanelController : MonoBehaviour
             .Where(_ => !OnDenyInput())
             .Subscribe(_ => MoveDownBottom(currentPanel));
 
-        //holdButton.onClick.AsObservable()
-        //    .Subscribe(_ => OnClickHoldButton());
-
         nextPanelCollection.ObserveReplace()
             .Subscribe((CollectionReplaceEvent<int> i) => nextPanelView.SetNextPanel(i.NewValue));
 
@@ -172,9 +169,6 @@ public class PanelController : MonoBehaviour
         SEManager.Instance.Play(SEPath.TAP_SOUND4, volumeRate: fellVolume);
         StartCoroutine(FallAndMerge(panel));
     }
-
-    // TODO: merge後のPanelの値が隣り合う(又は上下)Panelの値と等しいときMergeが走らない 
-    // 隣り合うパネルが落下パネルかつ値が等しいときバグる
 
     public IEnumerator FallAndMerge(Panel panel) {
 

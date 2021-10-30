@@ -8,21 +8,20 @@ using UniRx;
 
 [Serializable]
 public class SettingsItem {
-    public readonly string horizontalKey = "horizontal";
-    public readonly string verticalkey = "vertical";
+    public int moveHorizontal;
+    public int moveVertical;
+}
 
-    public string moveHorizontal;
-    public string moveVertical;
+public enum Operation {
+    Swipe = 1,
+    Flick = 2,
+    Tap = 3,
+    DoubleTap = 4,
+    FlickDown = 5 
 }
 
 public class SettingsController : SingletonMonoBehaviour<SettingsController>
 {
-    public const string SWIPE = "Swipe";
-    public const string FLICK = "Flick";
-    public const string TAP   = "Tap";
-    public const string DOUBLETAP = "DoubleTap";
-    public const string FLICKDOWN = "FlickDown";
-
     public SettingsItem settings;
 
     [SerializeField]
@@ -33,17 +32,20 @@ public class SettingsController : SingletonMonoBehaviour<SettingsController>
 
     [SerializeField]
     private SettingsList horizontalSetting;
-    private string[] horizontalMoves = new string[3] { FLICK, SWIPE, TAP };
+    private Operation[] horizontalMoves = new Operation[3] { Operation.Flick, Operation.Swipe, Operation.Tap };
     [SerializeField]
-    private string defaultHorizontalMove = FLICK;
-    private Subject<string> horizontalMoveSubject = new Subject<string>();
+    private Operation defaultHorizontalMove = Operation.Flick;
+    private Subject<int> horizontalMoveSubject = new Subject<int>();
 
     [SerializeField]
     private SettingsList verticalSetting;
-    private string[] verticalMoves = new string[2] { FLICKDOWN, DOUBLETAP };
+    private Operation[] verticalMoves = new Operation[2] { Operation.FlickDown, Operation.DoubleTap };
     [SerializeField]
-    private string defaultVerticalMove = FLICKDOWN;
-    private Subject<string> verticalMoveSubject = new Subject<string>();
+    private Operation defaultVerticalMove = Operation.FlickDown;
+    private Subject<int> verticalMoveSubject = new Subject<int>();
+
+    private static readonly string horizontalKey = "horizontal";
+    private static readonly string verticalKey   = "vertical"; 
 
     // Start is called before the first frame update
     void Start()
@@ -52,32 +54,32 @@ public class SettingsController : SingletonMonoBehaviour<SettingsController>
 
         settings = new SettingsItem();
 
-        settings.moveHorizontal = PlayerPrefs.GetString(settings.horizontalKey, defaultHorizontalMove);
-        settings.moveVertical = PlayerPrefs.GetString(settings.verticalkey, defaultVerticalMove);
+        settings.moveHorizontal = PlayerPrefs.GetInt(horizontalKey, (int)defaultHorizontalMove);
+        settings.moveVertical   = PlayerPrefs.GetInt(verticalKey, (int)defaultVerticalMove);
 
-        if (settings.moveHorizontal == "") {
-            settings.moveHorizontal = defaultHorizontalMove;
-            PlayerPrefs.SetString(settings.horizontalKey, defaultHorizontalMove);
+        if (settings.moveHorizontal == 0) {
+            settings.moveHorizontal = (int)defaultHorizontalMove;
+            PlayerPrefs.SetInt(horizontalKey, (int)defaultHorizontalMove);
         }
 
-        if (settings.moveVertical == "") {
-            settings.moveVertical = defaultVerticalMove;
-            PlayerPrefs.SetString(settings.verticalkey, defaultVerticalMove);
+        if (settings.moveVertical == 0) {
+            settings.moveVertical = (int)defaultVerticalMove;
+            PlayerPrefs.SetInt(verticalKey, (int)defaultVerticalMove);
         }
 
-        horizontalMoveSubject.Subscribe(s => {
-            settings.moveHorizontal = s;
-            PlayerPrefs.SetString(settings.horizontalKey, s);
+        horizontalMoveSubject.Subscribe(index => {
+            settings.moveHorizontal = index;
+            PlayerPrefs.SetInt(horizontalKey, index);
         });
 
-        verticalMoveSubject.Subscribe(s => {
-            settings.moveVertical = s;
-            PlayerPrefs.SetString(settings.verticalkey, s);
+        verticalMoveSubject.Subscribe(index => {
+            settings.moveVertical = index;
+            PlayerPrefs.SetInt(verticalKey, index);
         });
 
-        horizontalSetting.Init(horizontalMoves, horizontalMoveSubject, settings.moveHorizontal);
+        horizontalSetting.Init(horizontalMoves, horizontalMoveSubject, (Operation)settings.moveHorizontal);
 
-        verticalSetting.Init(verticalMoves,  verticalMoveSubject, settings.moveVertical);
+        verticalSetting.Init(verticalMoves,  verticalMoveSubject, (Operation)settings.moveVertical);
 
         if (settingsPanel) settingsPanel.SetActive(false);
     }
