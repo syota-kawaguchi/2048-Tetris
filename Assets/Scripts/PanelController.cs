@@ -92,11 +92,15 @@ public class PanelController : MonoBehaviour
 
         nextPanelCollection.Add(GenerateIndex());
 
+        int x = 0;
+
         this.UpdateAsObservable()
-            .Where(_ => inputManager.InputHorizontal() != 0)
-            .Where(_ => !OnDenyInput())
+            .Where(_ => {
+                x = inputManager.InputHorizontal(currentPanel);
+                return x != 0 && !OnDenyInput();
+            })
             .ThrottleFirst(TimeSpan.FromSeconds(inputTimeSpan))
-            .Subscribe(_ => MoveHorizontal(inputManager.InputHorizontal()));
+            .Subscribe(_ => MoveHorizontal(x));
 
         this.UpdateAsObservable()
             .Where(_ => inputManager.OnMoveDown())
@@ -136,11 +140,14 @@ public class PanelController : MonoBehaviour
         nextPanelCollection[0] = GenerateIndex();
     }
 
-    private void MoveHorizontal(float hol) {
-        int value = hol > 0 ? 1 : 0 > hol? -1 : 0; //0より大きい → １、0より小さい → -1、0 → 0
-        currentPanelObj.transform.position += new Vector3(value, 0, 0);
-        if (!ValidMovement()) {
-            currentPanelObj.transform.position += new Vector3(-value, 0, 0);
+    private void MoveHorizontal(float value) {
+        int moveDirection = value > 0 ? 1 : 0 > value? -1 : 0; //0より大きい → １、0より小さい → -1、0 → 0
+        for (int i = 0; i < Mathf.Abs(value); i++) {
+            currentPanelObj.transform.position += new Vector3(moveDirection, 0, 0);
+            if (!ValidMovement()) {
+                currentPanelObj.transform.position += new Vector3(-moveDirection, 0, 0);
+                break;
+            }
         }
     }
 
@@ -241,8 +248,6 @@ public class PanelController : MonoBehaviour
         yield return StartCoroutine(animCoroutrine);
         yield return fallablePanelList;
     }
-
-    //Want: Actionをもっと効率的に設定したい
 
     private IEnumerator MergePanel(List<Panel> fellPanel) {
 

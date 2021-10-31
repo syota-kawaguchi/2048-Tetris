@@ -5,8 +5,7 @@ using UnityEngine;
 using TMPro;
 using UniRx;
 
-public class Panel : MonoBehaviour
-{
+public class Panel : MonoBehaviour {
     [SerializeField]
     private TextMeshProUGUI panelNum;
     [SerializeField]
@@ -15,6 +14,8 @@ public class Panel : MonoBehaviour
     public bool mergeFlag = false;
 
     private int deltaIndex = 0;
+
+    private int currentLane = 3;
 
     private ReactiveProperty<int> index = new ReactiveProperty<int>(1);
 
@@ -27,6 +28,14 @@ public class Panel : MonoBehaviour
 
         Color color = PanelColors.GetColor(index.Value);
         panel.color = new Color(color.r, color.g, color.b);
+
+        currentLane = (int)Mathf.Floor(transform.position.x) + 1;
+    }
+
+    private void Update() {
+        if (currentLane != (int)Mathf.Floor(transform.position.x) + 1) {
+            currentLane = (int)Mathf.Floor(transform.position.x) + 1;
+        }
     }
 
     public int getPanelIndex {
@@ -56,5 +65,9 @@ public class Panel : MonoBehaviour
         index.Value += deltaIndex;
         deltaIndex = 0;
         panel.color = PanelColors.GetColor(index.Value);
+    }
+
+    public int getCurrentLane {
+        get { return currentLane; }
     }
 }
