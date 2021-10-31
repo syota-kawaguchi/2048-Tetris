@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UniRx;
-using UnityEngine.UI;
 
 public class InputManager : MonoBehaviour
 {
@@ -18,9 +17,6 @@ public class InputManager : MonoBehaviour
     private float rightMostLower = 3.5f;
     [SerializeField]
     private float rightMostUpper = 4.6f;
-
-    [SerializeField]
-    private Text debugTapPos;
 
     public bool OnMoveDown() {
         var settings = SettingsController.Instance.settings;
@@ -50,7 +46,6 @@ public class InputManager : MonoBehaviour
                     if (Input.touchCount > 0 || Input.GetMouseButton(0)) {
                         var touchLane = ConvertTouchPosToLane(ScreenInput.Instance.getTouchPos);
                         var currentLane = panel.getCurrentLane;
-                        debugTapPos.text = $"{touchLane} {currentLane}";
                         return touchLane - currentLane;
                     }
                     else return 0;
@@ -66,23 +61,16 @@ public class InputManager : MonoBehaviour
 
     private int ConvertTouchPosToLane(Vector2 touchPosPixel) {
         var touchPosWorld = Camera.main.ScreenToWorldPoint(touchPosPixel);
-        Debug.Log($"touch Pos : {touchPosWorld}");
-        Debug.Log($"touch Pos x : {touchPosWorld.x}");
         int rtv = 0;
         if (leftMostLower <= touchPosWorld.x && touchPosWorld.x < leftLower) rtv = 1;
         else if (touchPosWorld.x <= centerLower) rtv = 2;
         else if (touchPosWorld.x <= rightLower) rtv = 3;
         else if (touchPosWorld.x <= rightMostLower) rtv = 4;
         else if (touchPosWorld.x <= rightMostUpper) rtv = 5;
-        Debug.Log($"rtv : {rtv}");
         return rtv;
     }
 
     private bool isSmartPhone {
         get { return Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.IPhonePlayer; }
-    }
-
-    private void Update() {
-        
     }
 }
