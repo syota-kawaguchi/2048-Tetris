@@ -24,11 +24,25 @@ public class SettingsList : MonoBehaviour
 
     private int index;
 
-    void Start()
-    {
-        index = 0;
-
+    private void OnChangedIndex() {
+        if (items == null || items.Length == 0) return;
         itemName.text = items[index].ToString();
+
+        publisher.OnNext((int)items[index]);
+    }
+
+    public void Init(Operation[] _items, IObserver<int> publisher, Operation item) {
+        this.items = _items;
+        this.publisher = publisher;
+
+        itemName.text = item.ToString();
+
+        for (int i = 0; i < items.Length; i++) {
+            if (items[i] == item) {
+                index = i;
+                break;
+            }
+        }
 
         leftButton.OnClickAsObservable().Subscribe(_ => {
             index--;
@@ -45,19 +59,5 @@ public class SettingsList : MonoBehaviour
             }
             OnChangedIndex();
         });
-    }
-
-    private void OnChangedIndex() {
-        if (items == null || items.Length == 0) return;
-        itemName.text = items[index].ToString();
-
-        publisher.OnNext((int)items[index]);
-    }
-
-    public void Init(Operation[] items, IObserver<int> publisher, Operation item) {
-        this.items = items;
-        this.publisher = publisher;
-
-        itemName.text = item.ToString();
     }
 }

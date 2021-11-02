@@ -54,8 +54,9 @@ public class SettingsController : SingletonMonoBehaviour<SettingsController>
 
         settings = new SettingsItem();
 
-        settings.moveHorizontal = PlayerPrefs.GetInt(horizontalKey, (int)defaultHorizontalMove);
-        settings.moveVertical   = PlayerPrefs.GetInt(verticalKey, (int)defaultVerticalMove);
+        //デフォルトはキーがなければ返されるだけで、キーがない時はセットされるわけではない
+        settings.moveHorizontal = PlayerPrefs.GetInt(horizontalKey);
+        settings.moveVertical   = PlayerPrefs.GetInt(verticalKey);
 
         if (settings.moveHorizontal == 0) {
             settings.moveHorizontal = (int)defaultHorizontalMove;
