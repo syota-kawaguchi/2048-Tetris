@@ -21,6 +21,8 @@ public class PanelColors : MonoBehaviour {
     static readonly Color32 color32768 = new Color32(0, 100, 195, 255);
     static readonly Color32 color65536 = new Color32(32, 0, 195, 255);
     static readonly Color32 color131072 = new Color32(154, 0, 195, 255);
+    static readonly Color32 darkBrown = new Color32(108, 98, 91, 255);
+    static readonly Color32 white = new Color32(255, 255, 255, 255);
 
     public static Color GetColor(int i) {
         switch (i % 18) {
@@ -44,5 +46,10 @@ public class PanelColors : MonoBehaviour {
             case 0: return color1;
             default: return color1;
         }
+    }
+
+    public static Color GetTextColor(int i) {
+        if (i <= 2) return darkBrown;
+        else return Color.white;
     }
 }
