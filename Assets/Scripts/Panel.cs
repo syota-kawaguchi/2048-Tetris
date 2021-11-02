@@ -27,6 +27,7 @@ public class Panel : MonoBehaviour {
         }).AddTo(gameObject);
 
         Color color = PanelColors.GetColor(index.Value);
+        panelNum.color = PanelColors.GetTextColor(index.Value);
         panel.color = new Color(color.r, color.g, color.b);
 
         currentLane = (int)Mathf.Floor(transform.position.x) + 1;
@@ -65,6 +66,7 @@ public class Panel : MonoBehaviour {
         index.Value += deltaIndex;
         deltaIndex = 0;
         panel.color = PanelColors.GetColor(index.Value);
+        panelNum.color = PanelColors.GetTextColor(index.Value);
     }
 
     public int getCurrentLane {
