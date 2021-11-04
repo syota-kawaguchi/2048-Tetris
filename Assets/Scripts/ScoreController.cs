@@ -19,6 +19,10 @@ public class ScoreController : MonoBehaviour
         get { return score.Value; }
     }
 
+    public void ResetScore() {
+        score.Value = 0;
+    }
+
     void Start()
     {
         score.Subscribe(_ =>{
