@@ -350,6 +350,7 @@ public class PanelController : MonoBehaviour
         currentPanel = null;
         Destroy(currentPanelObj);
         nextPanelCollection.Clear();
+        scoreController.ResetScore();
 
         nextPanelCollection.Add(GenerateIndex());
 
