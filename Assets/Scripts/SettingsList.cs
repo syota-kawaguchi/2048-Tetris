@@ -24,9 +24,18 @@ public class SettingsList : MonoBehaviour
 
     private int index;
 
+    [SerializeField]
+    private Dictionary<Operation, string> operationToJa = new Dictionary<Operation, string>() {
+        { Operation.Flick, "フリック"},
+        { Operation.Swipe, "スワイプ"},
+        { Operation.Tap, "タップ"},
+        { Operation.FlickDown, "下にフリック"},
+        { Operation.DoubleTap, "ダブルタップ"}
+    };
+
     private void OnChangedIndex() {
         if (items == null || items.Length == 0) return;
-        itemName.text = items[index].ToString();
+        itemName.text = operationToJa[items[index]];
 
         publisher.OnNext((int)items[index]);
     }
@@ -35,7 +44,7 @@ public class SettingsList : MonoBehaviour
         this.items = _items;
         this.publisher = publisher;
 
-        itemName.text = item.ToString();
+        itemName.text = operationToJa[item];
 
         for (int i = 0; i < items.Length; i++) {
             if (items[i] == item) {
