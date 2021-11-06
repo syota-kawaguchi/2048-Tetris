@@ -5,6 +5,7 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 using UniRx;
+using AudioManager;
 
 [Serializable]
 public class SettingsItem {
@@ -86,6 +87,7 @@ public class SettingsController : SingletonMonoBehaviour<SettingsController>
     }
 
     public void HideSettingsPanel() {
+        SEManager.Instance.Play(SEPath.TAP_SOUND2);
         settingsPanel.SetActive(false);
     }
 }

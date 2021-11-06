@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UniRx;
+using AudioManager;
 
 public class SettingsList : MonoBehaviour
 {
@@ -54,6 +55,7 @@ public class SettingsList : MonoBehaviour
         }
 
         leftButton.OnClickAsObservable().Subscribe(_ => {
+            SEManager.Instance.Play(SEPath.TAPSOUND5);
             index--;
             if (index < 0) {
                 index = items.Length - 1;
@@ -62,6 +64,7 @@ public class SettingsList : MonoBehaviour
         });
 
         rightButton.OnClickAsObservable().Subscribe(_ => {
+            SEManager.Instance.Play(SEPath.TAPSOUND5);
             index++;
             if (items.Length <= index) {
                 index = 0;
