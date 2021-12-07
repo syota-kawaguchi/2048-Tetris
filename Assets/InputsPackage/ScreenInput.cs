@@ -20,6 +20,8 @@ public class ScreenInput : SingletonMonoBehaviour<ScreenInput>
     // スワイプ最小移動距離
     [SerializeField]
     private Vector2 SwipeMinRange = new Vector2(50.0f, 50.0f);
+    [SerializeField]
+    private float resetSwipePosDist = 10.0f;
     // TAPをNONEに戻すまでのカウント
     [SerializeField]
     private int NoneCountMax = 2;
@@ -27,6 +29,8 @@ public class ScreenInput : SingletonMonoBehaviour<ScreenInput>
     private float DoubleTapSpan = 0.2f;
     // スワイプ入力距離
     private Vector2 SwipeRange;
+    // 1フレーム前のTouchPosを保持
+    private Vector2 touchPosBefore;
     // 入力方向記録用
     private Vector2 inputStart;
     private Vector2 inputMove;
@@ -105,12 +109,16 @@ public class ScreenInput : SingletonMonoBehaviour<ScreenInput>
                 }
                 else if (touch.phase == TouchPhase.Moved) {
                     inputMove = Input.mousePosition;
+                    if (touchPosBefore != null && (touchPosBefore - touch.position).magnitude < resetSwipePosDist) {
+                        inputStart = touch.position;
+                    }
                     SwipeCalc();
                 }
                 else if (touch.phase == TouchPhase.Ended) {
                     inputEnd = touch.position;
                     FlickCalc();
                 }
+                touchPosBefore = touch.position;
             }
             else if (flickDirection != Direction.NONE || swipeDirection != Direction.NONE) {
                 ResetParameter();
