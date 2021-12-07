@@ -15343,6 +15343,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   FlickMinRange: {x: 30, y: 30}
   SwipeMinRange: {x: 70, y: 70}
+  resetSwipePosDist: 10
   NoneCountMax: 2
   enableDoubleTapFrame: 2
   tapDuration: 0.2
