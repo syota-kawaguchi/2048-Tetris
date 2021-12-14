@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System;
-using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 using UniRx;
@@ -11,6 +10,7 @@ using AudioManager;
 public class SettingsItem {
     public int moveHorizontal;
     public int moveVertical;
+    public float seVolume;
 }
 
 public enum Operation {
@@ -45,8 +45,15 @@ public class SettingsController : SingletonMonoBehaviour<SettingsController>
     private Operation defaultVerticalMove = Operation.FlickDown;
     private Subject<int> verticalMoveSubject = new Subject<int>();
 
+    [SerializeField]
+    private SettingsList seSetting;
+    [SerializeField]
+    private float defaultSeVolume = 0.8f;
+    private Subject<float> seVolumeSubject = new Subject<float>();
+
     private static readonly string horizontalKey = "horizontal";
-    private static readonly string verticalKey   = "vertical"; 
+    private static readonly string verticalKey   = "vertical";
+    public  static readonly string seKey         = "seVolume";
 
     // Start is called before the first frame update
     void Start()
@@ -56,18 +63,9 @@ public class SettingsController : SingletonMonoBehaviour<SettingsController>
         settings = new SettingsItem();
 
         //デフォルトはキーがなければ返されるだけで、キーがない時はセットされるわけではない
-        settings.moveHorizontal = PlayerPrefs.GetInt(horizontalKey);
-        settings.moveVertical   = PlayerPrefs.GetInt(verticalKey);
-
-        if (settings.moveHorizontal == 0) {
-            settings.moveHorizontal = (int)defaultHorizontalMove;
-            PlayerPrefs.SetInt(horizontalKey, (int)defaultHorizontalMove);
-        }
-
-        if (settings.moveVertical == 0) {
-            settings.moveVertical = (int)defaultVerticalMove;
-            PlayerPrefs.SetInt(verticalKey, (int)defaultVerticalMove);
-        }
+        settings.moveHorizontal = SetSettingItem(horizontalKey, (int)defaultHorizontalMove);
+        settings.moveVertical   = SetSettingItem(verticalKey, (int)defaultVerticalMove);
+        settings.seVolume       = SetSettingItem(seKey, defaultSeVolume);
 
         horizontalMoveSubject.Subscribe(index => {
             settings.moveHorizontal = index;
@@ -79,15 +77,42 @@ public class SettingsController : SingletonMonoBehaviour<SettingsController>
             PlayerPrefs.SetInt(verticalKey, index);
         });
 
+        seVolumeSubject.Subscribe(value => {
+            settings.seVolume = value;
+            PlayerPrefs.SetFloat(seKey, value);
+        });
+
         horizontalSetting.Init(horizontalMoves, horizontalMoveSubject, (Operation)settings.moveHorizontal);
 
         verticalSetting.Init(verticalMoves,  verticalMoveSubject, (Operation)settings.moveVertical);
 
+        seSetting.Init(seVolumeSubject, settings.seVolume);
+
         if (settingsPanel) settingsPanel.SetActive(false);
     }
 
+    private static int SetSettingItem(string key, int defaultValue) {
+        if (PlayerPrefs.HasKey(key)) return PlayerPrefs.GetInt(key);
+        else {
+            PlayerPrefs.SetInt(key, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    private static float SetSettingItem(string key, float defaultValue) {
+        if (PlayerPrefs.HasKey(key)) {
+            return PlayerPrefs.GetFloat(key);
+        }
+        else {
+            PlayerPrefs.SetFloat(key, defaultValue);
+            return defaultValue;
+        }
+    }
+
     public void HideSettingsPanel() {
-        SEManager.Instance.Play(SEPath.TAP_SOUND2);
+        var settings = SettingsController.Instance.settings;
+        var seVolume = settings != null ? settings.seVolume : 0.8f;
+        SEManager.Instance.Play(SEPath.TAP_SOUND2, volumeRate:seVolume);
         settingsPanel.SetActive(false);
     }
 }

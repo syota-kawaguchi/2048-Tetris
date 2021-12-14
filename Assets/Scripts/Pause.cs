@@ -52,30 +52,30 @@ public class Pause : MonoBehaviour
                 pausePanel.transform.DOScale(initScaleRatio, 0);
                 OnTapButton(true, true);
                 pausePanel.transform.DOScale(endScaleRatio, showPauseDuration);
-            });
+            }).AddTo(this.gameObject);
 
         resumeButton.onClick.AsObservable()
             .Subscribe(_ => {
                 OnTapButton(false, false);
-            });
+            }).AddTo(this.gameObject);
 
         restartButton.OnClickAsObservable()
             .Subscribe(_ =>{
                 OnTapButton(false, false);
                 panelController.Restart();
-            });
+            }).AddTo(this.gameObject);
 
         quitButton.OnClickAsObservable()
             .Subscribe(_ =>{
                 OnTapButton(false, false);
                 SceneManager.LoadScene("StartScene");
-            });
+            }).AddTo(this.gameObject);
 
         settingsButton.OnClickAsObservable()
             .Subscribe(_ =>{
                 OnTapButton(true, true);
                 settingsPanel.SetActive(true);
-            });
+            }).AddTo(this.gameObject);
 
         pausePanel.SetActive(false);
     }
@@ -83,6 +83,8 @@ public class Pause : MonoBehaviour
     void OnTapButton(bool _onPause, bool activeSelf) {
         onPause = _onPause;
         pausePanel.SetActive(activeSelf);
-        SEManager.Instance.Play(SEPath.TAP_SOUND2);
+        var settings = SettingsController.Instance.settings;
+        var seVolume = settings != null ? settings.seVolume : 0.8f;
+        SEManager.Instance.Play(SEPath.TAP_SOUND2, volumeRate:seVolume);
     }
 }

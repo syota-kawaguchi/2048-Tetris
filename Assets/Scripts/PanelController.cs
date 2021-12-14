@@ -78,10 +78,6 @@ public class PanelController : MonoBehaviour
     [HideInInspector]
     public bool OnModeDebug = false;
 
-    [Header("SEVolume")]
-    [SerializeField]
-    private float fellVolume = 0.5f;
-
     void Start() {
 
         if (OnModeDebug) return;
@@ -154,12 +150,15 @@ public class PanelController : MonoBehaviour
     private void MoveDown() {
         if (!currentPanelObj) return;
 
+        var settings = SettingsController.Instance.settings;
+        var seVolume = settings != null ? settings.seVolume : 0.8f;
+
         currentPanelObj.transform.position += Vector3.down;
 
         if (!ValidMovement()) {
             currentPanelObj.transform.position += Vector3.up;
             Grid.Add(currentPanel);
-            SEManager.Instance.Play(SEPath.TAP_SOUND4, volumeRate:fellVolume);
+            SEManager.Instance.Play(SEPath.TAP_SOUND4, volumeRate:seVolume);
             StartCoroutine(FallAndMerge(currentPanel));
         }
     }
@@ -173,7 +172,9 @@ public class PanelController : MonoBehaviour
             break;
         }
         Grid.Add(panel);
-        SEManager.Instance.Play(SEPath.TAP_SOUND4, volumeRate: fellVolume);
+        var settings = SettingsController.Instance.settings;
+        var seVolume = settings != null ? settings.seVolume : 0.8f;
+        SEManager.Instance.Play(SEPath.TAP_SOUND4, volumeRate: seVolume);
         StartCoroutine(FallAndMerge(panel));
     }
 

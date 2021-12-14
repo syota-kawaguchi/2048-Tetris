@@ -9,14 +9,20 @@ using AudioManager;
 
 public class SettingsList : MonoBehaviour
 {
-    [SerializeField]
-    private Button leftButton;
+    public enum SettingsType {
+        LIST,
+        SLIDER
+    }
 
-    [SerializeField]
-    private Button rightButton;
+    public SettingsType type;
 
-    [SerializeField]
-    private TextMeshProUGUI itemName;
+    public Button leftButton;
+
+    public Button rightButton;
+
+    public TextMeshProUGUI itemName;
+
+    public Slider slider;
 
     [SerializeField]
     private Operation[] items;
@@ -55,7 +61,9 @@ public class SettingsList : MonoBehaviour
         }
 
         leftButton.OnClickAsObservable().Subscribe(_ => {
-            SEManager.Instance.Play(SEPath.TAPSOUND5);
+            var settings = SettingsController.Instance.settings;
+            var seVolume = settings != null ? settings.seVolume : 0.8f;
+            SEManager.Instance.Play(SEPath.TAPSOUND5, volumeRate:seVolume);
             index--;
             if (index < 0) {
                 index = items.Length - 1;
@@ -64,12 +72,25 @@ public class SettingsList : MonoBehaviour
         });
 
         rightButton.OnClickAsObservable().Subscribe(_ => {
-            SEManager.Instance.Play(SEPath.TAPSOUND5);
+            var settings = SettingsController.Instance.settings;
+            var seVolume = settings != null ? settings.seVolume : 0.8f;
+            SEManager.Instance.Play(SEPath.TAPSOUND5, volumeRate: seVolume);
             index++;
             if (items.Length <= index) {
                 index = 0;
             }
             OnChangedIndex();
+        });
+    }
+
+    public void Init(IObserver<float> publisher, float defaultValue) {
+
+        if (slider == null) return;
+
+        slider.value = defaultValue;
+
+        slider.onValueChanged.AddListener(value => {
+            publisher.OnNext(value);
         });
     }
 }

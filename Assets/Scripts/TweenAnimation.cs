@@ -34,6 +34,9 @@ public class TweenAnimation : MonoBehaviour
     public static IEnumerator RunMergeAnim(float strength, float shakeTime, float mergeDuration) {
         if (MoveAnimList.Count == 0) yield break;
 
+        var settings = SettingsController.Instance.settings;
+        var seVolume = settings != null ? settings.seVolume : 0.8f;
+
         bool finMergeFlag = false;
         for (int i = 0; i < MoveAnimList.Count; i++) {
             var anim = MoveAnimList[i];
@@ -41,7 +44,7 @@ public class TweenAnimation : MonoBehaviour
                 .DOMove(anim.purpose, anim.duration)
                 .OnComplete(() => {
                     anim.onComplete?.Invoke();
-                    SEManager.Instance.Play(SEPath.TAP_SOUND1);
+                    SEManager.Instance.Play(SEPath.TAP_SOUND1, volumeRate:seVolume);
                     if (i >= MoveAnimList.Count - 1 && anim.centerPanel) {
                         var tmpScale = anim.centerPanel.localScale;
                         anim.centerPanel
